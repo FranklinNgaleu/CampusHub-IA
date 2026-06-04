@@ -31,8 +31,11 @@ class UserSkill(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    category: Mapped[SkillCategory] = mapped_column(Enum(SkillCategory), default=SkillCategory.OTHER, nullable=False)
-    level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel), default=SkillLevel.BEGINNER, nullable=False)
+    # category: Mapped[SkillCategory] = mapped_column(Enum(SkillCategory), default=SkillCategory.OTHER, nullable=False)
+    # level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel), default=SkillLevel.BEGINNER, nullable=False)
+    category: Mapped[SkillCategory] = mapped_column(Enum(SkillCategory, values_callable=lambda obj: [e.value for e in obj]),default=SkillCategory.OTHER,nullable=False)
+
+    level: Mapped[SkillLevel] = mapped_column(Enum(SkillLevel, values_callable=lambda obj: [e.value for e in obj]),default=SkillLevel.BEGINNER,nullable=False)
 
     is_validated: Mapped[bool] = mapped_column(Boolean, default=False)
     validated_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)

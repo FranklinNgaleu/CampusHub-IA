@@ -10,11 +10,16 @@ import os
 # Ajouter le chemin du projet
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+
 from core.database import AsyncSessionLocal
 from core.security import hash_password
 from models.user import User, YearLevel, UserRole
 from models.skill import UserSkill, SkillLevel, SkillCategory
 from sqlalchemy import select
+from models.mentorship import Mentorship
+from models.project import ProjectMember
+from models.event import EventRegistration
+from models.club import ClubMember
 
 
 async def create_or_update_mentors():

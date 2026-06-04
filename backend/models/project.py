@@ -37,8 +37,10 @@ class Project(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    type: Mapped[ProjectType] = mapped_column(Enum(ProjectType), nullable=False)
-    status: Mapped[ProjectStatus] = mapped_column(Enum(ProjectStatus), default=ProjectStatus.OPEN, nullable=False)
+    # type: Mapped[ProjectType] = mapped_column(Enum(ProjectType), nullable=False)
+    type: Mapped[ProjectType] = mapped_column(Enum(ProjectType, values_callable=lambda obj: [e.value for e in obj]),nullable=False)
+    # status: Mapped[ProjectStatus] = mapped_column(Enum(ProjectStatus), default=ProjectStatus.OPEN, nullable=False)
+    status: Mapped[ProjectStatus] = mapped_column(Enum(ProjectStatus, values_callable=lambda obj: [e.value for e in obj]),default=ProjectStatus.OPEN,nullable=False)
 
     required_skills: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     max_members: Mapped[int] = mapped_column(Integer, default=5, nullable=False)

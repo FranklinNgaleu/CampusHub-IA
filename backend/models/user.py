@@ -32,8 +32,10 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.STUDENT, nullable=False)
-    year_level: Mapped[Optional[YearLevel]] = mapped_column(Enum(YearLevel), nullable=True)
+    # role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.STUDENT, nullable=False)
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole, values_callable=lambda obj: [e.value for e in obj]),default=UserRole.STUDENT,nullable=False)
+    # year_level: Mapped[Optional[YearLevel]] = mapped_column(Enum(YearLevel), nullable=True)
+    year_level: Mapped[YearLevel] = mapped_column(Enum(YearLevel, values_callable=lambda obj: [e.value for e in obj]),nullable=False)
     specialty: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
