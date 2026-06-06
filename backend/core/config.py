@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
-    
+    SEED_ON_STARTUP: bool = True
+
     model_config = SettingsConfigDict(
         env_file="../.env",  # ⚠️ Changement ici : cherche .env à la racine
         env_file_encoding="utf-8",

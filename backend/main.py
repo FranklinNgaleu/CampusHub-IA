@@ -3,15 +3,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
-# ⚠️ create_tables n'est plus importé
+from core.config import settings
+from core.database import create_tables
+from core.seeder import seed_database
 from routers import auth, users, skills, matching, mentorat, clubs, events, admin, certifications
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialise l'application."""
-    # ⚠️ Plus de create_tables() - Les migrations sont gérées par Alembic
-    # Les tables sont créées via : alembic upgrade head
+    try:
+        await create_tables()
+        if settings.SEED_ON_STARTUP:
+            await seed_database()
+    except Exception as exc:
+        print(f"❌ Erreur au démarrage de l'application : {exc}")
+        raise
     yield
 
 
