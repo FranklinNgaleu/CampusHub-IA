@@ -2,13 +2,14 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from core.database import get_db
 from core.security import get_current_user
 from models.user import User, YearLevel
-from models.project import Project, ProjectStatus, ProjectType, ProjectApplication
+from models.project import Project, ProjectStatus, ProjectType, ProjectApplication, ProjectMember
+from models.mentorship import Mentorship
 from services.matching_service import (
     match_user_to_project,
     match_mentor_to_mentee,
@@ -30,7 +31,10 @@ class ProjectMatchResponse(BaseModel):
     skill_score: float
     availability_score: float
     interest_score: float
+    profile_score: float
+    history_score: float
     explanation: str
+    match_reason: str
     available_slots: int
     required_skills: list
     created_by: int  # ⭐ AJOUTÉ
@@ -43,7 +47,13 @@ class MentorMatchResponse(BaseModel):
     specialty: Optional[str]
     score_percent: int
     total_score: float
+    skill_score: float
+    availability_score: float
+    interest_score: float
+    profile_score: float
+    history_score: float
     explanation: str
+    match_reason: str
     is_available: bool
     active_mentees: int
 
@@ -79,17 +89,41 @@ async def get_project_matches(
     projects = result.scalars().all()
 
     user_skills = [{"name": s.name, "level": s.level.value} for s in current_user.skills]
-    user_history = {"completed_projects": 0, "avg_rating": 0.0}
+
+    completed_projects_count = await db.scalar(
+        select(func.count(ProjectMember.id))
+        .join(Project)
+        .where(
+            ProjectMember.user_id == current_user.id,
+            ProjectMember.status == "accepted",
+            Project.status == ProjectStatus.COMPLETED,
+        )
+    )
+
+    avg_mentee_rating = await db.scalar(
+        select(func.avg(Mentorship.mentee_rating))
+        .where(
+            Mentorship.mentee_id == current_user.id,
+            Mentorship.mentee_rating != None,
+        )
+    )
+    user_history = {
+        "completed_projects": int(completed_projects_count or 0),
+        "avg_rating": float(avg_mentee_rating or 0.0),
+    }
 
     matches = []
     for project in projects:
         match = match_user_to_project(
             user_skills=user_skills,
             user_specialty=current_user.specialty,
+            user_bio=current_user.bio,
             user_hours_per_week=current_user.hours_per_week,
             user_history=user_history,
             project={
                 "id": project.id,
+                "title": project.title,
+                "description": project.description,
                 "type": project.type.value,
                 "required_skills": project.required_skills or [],
                 "required_hours_per_week": project.required_hours_per_week,
@@ -107,7 +141,10 @@ async def get_project_matches(
                 skill_score=match.skill_score,
                 availability_score=match.availability_score,
                 interest_score=match.interest_score,
+                profile_score=match.profile_score,
+                history_score=match.history_score,
                 explanation=match.explanation,
+                match_reason=match.match_reason,
                 available_slots=project.available_slots,
                 required_skills=project.required_skills or [],
                 created_by=project.created_by,  # ⭐ AJOUTÉ
@@ -197,10 +234,13 @@ async def apply_to_project(
     match = match_user_to_project(
         user_skills=user_skills,
         user_specialty=current_user.specialty,
+        user_bio=current_user.bio,
         user_hours_per_week=current_user.hours_per_week,
         user_history={"completed_projects": 0, "avg_rating": 0.0},
         project={
             "id": project.id,
+            "title": project.title,
+            "description": project.description,
             "type": project.type.value,
             "required_skills": project.required_skills or [],
             "required_hours_per_week": project.required_hours_per_week,
@@ -278,9 +318,6 @@ async def get_mentor_matches(
         if order > mentee_order:
             eligible_levels.append(level)
     
-    print(f"[MATCHING] Mentoré: {mentee_level_str} (ordre {mentee_order})")
-    print(f"[MATCHING] Niveaux éligibles pour mentor: {eligible_levels}")
-    
     if not eligible_levels:
         return []
     
@@ -292,29 +329,50 @@ async def get_mentor_matches(
     
     result = await db.execute(stmt)
     mentors = result.scalars().all()
-    
-    print(f"[MATCHING] Mentors trouvés: {len(mentors)}")
-    
+
     matches = []
     for mentor in mentors:
         active_mentees = len([m for m in mentor.mentorships_as_mentor if m.status == "active"])
-        
-        score = 85
-        if current_user.specialty and mentor.specialty:
-            if current_user.specialty.lower() in mentor.specialty.lower() or mentor.specialty.lower() in current_user.specialty.lower():
-                score = 95
-        
+
+        mentor_match = match_mentor_to_mentee(
+            mentor={
+                "id": mentor.id,
+                "year_level": mentor.year_level.value if mentor.year_level else None,
+                "specialty": mentor.specialty,
+                "bio": mentor.bio,
+                "full_name": mentor.full_name,
+                "is_available": mentor.is_available,
+            },
+            mentee={
+                "id": current_user.id,
+                "year_level": current_user.year_level.value if current_user.year_level else None,
+                "specialty": current_user.specialty,
+                "bio": current_user.bio,
+            },
+            mentor_skills=[{"name": s.name, "level": s.level.value} for s in mentor.skills],
+            mentee_skills=[{"name": s.name, "level": s.level.value} for s in current_user.skills],
+        )
+
+        if not mentor_match:
+            continue
+
         matches.append(MentorMatchResponse(
             mentor_id=mentor.id,
             mentor_name=mentor.full_name,
             year_level=mentor.year_level.value if mentor.year_level else None,
             specialty=mentor.specialty,
-            score_percent=score,
-            total_score=score / 100,
-            explanation=f"Mentor de niveau {mentor.year_level.value if mentor.year_level else '?'} - Spécialité: {mentor.specialty or 'Non renseignée'}",
+            score_percent=mentor_match.score_percent,
+            total_score=mentor_match.total_score,
+            skill_score=mentor_match.skill_score,
+            availability_score=mentor_match.availability_score,
+            interest_score=mentor_match.interest_score,
+            profile_score=mentor_match.profile_score,
+            history_score=mentor_match.history_score,
+            explanation=mentor_match.explanation,
+            match_reason=mentor_match.match_reason,
             is_available=mentor.is_available,
             active_mentees=active_mentees,
         ))
-    
+
     matches.sort(key=lambda x: x.score_percent, reverse=True)
     return matches[:top_k]

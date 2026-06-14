@@ -17,7 +17,7 @@ const tm = `
   .project-desc { color:var(--muted); font-size:12px; line-height:1.5; margin-bottom:12px; }
   .project-skills{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; }
   .project-foot { display:flex; align-items:center; justify-content:space-between; }
-  .algo-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
+  .algo-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:16px; }
   .algo-item {
     text-align:center; padding:14px 10px;
     background:var(--surface2); border-radius:10px; border:1px solid var(--border);
@@ -223,6 +223,17 @@ export default function TalentMatch({ addToast }) {
               <div style={{ marginBottom: 12 }}>
                 <ProgressBar value={p.score_percent || 0} color={c.line} />
               </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10, fontSize: 11, color: 'var(--muted)' }}>
+                {typeof p.profile_score === 'number' && (
+                  <span>Contexte {Math.round(p.profile_score * 100)}%</span>
+                )}
+                {typeof p.history_score === 'number' && (
+                  <span>Historique {Math.round(p.history_score * 100)}%</span>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
+                {p.match_reason || p.explanation}
+              </div>
               <div className="project-foot">
                 <span style={{ fontSize: 11, color: 'var(--muted)' }}>
                   {p.available_slots || 0} poste(s) disponible(s)
@@ -253,10 +264,11 @@ export default function TalentMatch({ addToast }) {
         <div className="card-title">🧠 Comment fonctionne le matching IA</div>
         <div className="algo-grid">
           {[
-            { pct: '50%', name: 'Compétences', color: 'var(--accent)', desc: 'Similarité sur vos compétences' },
+            { pct: '45%', name: 'Compétences', color: 'var(--accent)', desc: 'Similarité sur vos compétences' },
             { pct: '20%', name: 'Disponibilités', color: 'var(--green)', desc: 'Heures disponibles' },
-            { pct: '20%', name: 'Intérêts', color: 'var(--accent2)', desc: 'Alignement spécialité' },
-            { pct: '10%', name: 'Historique', color: 'var(--orange)', desc: 'Projets précédents' },
+            { pct: '15%', name: 'Intérêts', color: 'var(--accent2)', desc: 'Alignement spécialité' },
+            { pct: '10%', name: 'Contexte', color: 'var(--pink)', desc: 'Adaptation projet / profil' },
+            { pct: '10%', name: 'Historique', color: 'var(--orange)', desc: 'Expérience antérieure' },
           ].map(a => (
             <div key={a.name} className="algo-item">
               <div className="algo-pct" style={{ color: a.color }}>{a.pct}</div>

@@ -624,11 +624,10 @@ export default function MentorLoop({ addToast }) {
       const freshMsgs = freshRes.data || []
       setMessages(prev => ({ ...prev, [mentorshipId]: freshMsgs }))
       
-      setConversationsWithUnread(prev => ({ ...prev, [mentorshipId]: false }))
-      
-      setUnreadCount(prev => {
-        const updated = { ...conversationsWithUnread, [mentorshipId]: false }
-        return Object.values(updated).filter(v => v === true).length
+      setConversationsWithUnread(prev => {
+        const updated = { ...prev, [mentorshipId]: false }
+        setUnreadCount(Object.values(updated).filter(v => v === true).length)
+        return updated
       })
       
       setTimeout(() => {
@@ -887,6 +886,15 @@ export default function MentorLoop({ addToast }) {
                       <div className="mentor-stats">
                         <div className="m-stat"><strong>Score IA</strong> {m.score_percent}% match</div>
                         <div className="m-stat"><strong>Disponible</strong> {m.is_available ? 'Oui' : 'Non'}</div>
+                        {typeof m.profile_score === 'number' && (
+                          <div className="m-stat"><strong>Contexte</strong> {Math.round(m.profile_score * 100)}%</div>
+                        )}
+                        {typeof m.history_score === 'number' && (
+                          <div className="m-stat"><strong>Expérience</strong> {Math.round(m.history_score * 100)}%</div>
+                        )}
+                        {m.match_reason && (
+                          <div className="m-stat" style={{ minWidth: 200, color: 'var(--muted)' }}><em>{m.match_reason}</em></div>
+                        )}
                       </div>
                       <div style={{ marginTop: 10, display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap' }}>
                         <Tag color={m.is_available ? 'green' : 'orange'}>
