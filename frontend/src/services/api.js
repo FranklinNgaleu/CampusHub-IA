@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // En développement, utilisez l'URL complète
 // const API_URL = 'http://localhost:8000';
-const API_URL = 'http://127.0.0.1:8000';
+// const API_URL = 'http://127.0.0.1:8000';
+const API_URL = 'https://campushub-backend-vo1m.onrender.com';
 
 const api = axios.create({
   baseURL: API_URL,
