@@ -393,3 +393,5 @@ SMTP_PASS=
 ---
 
 *CampusHub IA — Projet étudiant confidentiel*
+
+pret
